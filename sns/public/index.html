@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>■□ SNS</title>
+  <style>
+    body {
+      font-family: monospace;
+      max-width: 600px;
+      margin: 30px auto;
+    }
+    input, textarea {
+      font-family: monospace;
+      font-size: 16px;
+      width: 100%;
+    }
+    textarea {
+      height: 140px;
+      resize: none;
+    }
+    button {
+      font-family: monospace;
+      font-size: 16px;
+      margin: 3px;
+    }
+    .post {
+      border-top: 1px solid black;
+      margin-top: 10px;
+      padding-top: 5px;
+      white-space: pre;
+    }
+    .meta {
+      color: gray;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>■□ SNS</h1>
+
+<!-- ユーザー名 -->
+<input id="user" placeholder="anonymous（空欄OK）">
+
+<br><br>
+
+<!-- 投稿タイプ -->
+<label><input type="radio" name="type" value="ascii" checked> アスキーアート</label>
+<label><input type="radio" name="type" value="binary"> 2進数</label>
+
+<textarea id="text" readonly></textarea>
+
+<div>
+  <button onclick="add('■')">■</button>
+  <button onclick="add('□')">□</button>
+  <button onclick="back()">←</button>
+</div>
+
+<div>
+  <span id="count">0</span> / 900
+</div>
+
+<br>
+<button onclick="send()">投稿</button>
+
+<div id="timeline"></div>
+
+<script>
+  const textarea = document.getElementById("text");
+  const count = document.getElementById("count");
+
+  function add(c) {
+    if (textarea.value.length >= 900) return;
+    textarea.value += c;
+    count.textContent = textarea.value.length;
+  }
+
+  function back() {
+    textarea.value = textarea.value.slice(0, -1);
+    count.textContent = textarea.value.length;
+  }
+
+  async function send() {
+    if (!textarea.value) return;
+
+    const type = document.querySelector("input[name=type]:checked").value;
+    const user = document.getElementById("user").value || "anonymous";
+
+    await fetch("/post", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: textarea.value,
+        type,
+        user
+      })
+    });
+
+    textarea.value = "";
+    count.textContent = 0;
+    load();
+  }
+
+  async function good(id) {
+    await fetch("/good/" + id, { method: "POST" });
+    load();
+  }
+
+  async function load() {
+    const res = await fetch("/posts");
+    const posts = await res.json();
+
+    const tl = document.getElementById("timeline");
+    tl.innerHTML = "";
+
+    posts.forEach((p, i) => {
+      const d = document.createElement("div");
+      d.className = "post";
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent =
+        p.user + " / " +
+        (p.type === "binary" ? "2進数" : "アスキーアート");
+
+      const body = document.createElement("div");
+      body.textContent = p.text;
+
+      const btn = document.createElement("button");
+      btn.textContent = "GOOD " + p.good;
+      btn.onclick = () => good(i);
+
+      d.appendChild(meta);
+      d.appendChild(body);
+      d.appendChild(btn);
+      tl.prepend(d);
+    });
+  }
+
+  load();
+</script>
+
+</body>
+</html>
