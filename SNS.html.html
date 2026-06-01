@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>■□ SNS</title>
+  <style>
+    body {
+      background: white;
+      color: black;
+      font-family: monospace;
+      max-width: 600px;
+      margin: 40px auto;
+    }
+
+    textarea {
+      width: 100%;
+      height: 160px;
+      font-family: monospace;
+      font-size: 16px;
+      resize: none;
+    }
+
+    button {
+      font-family: monospace;
+      font-size: 16px;
+      margin: 4px;
+    }
+
+    .post {
+      border-top: 1px solid black;
+      margin-top: 16px;
+      padding-top: 8px;
+    }
+
+    .post pre {
+      white-space: pre;
+      font-family: monospace;
+      margin: 6px 0;
+    }
+
+    .binary {
+      background: #f2f2f2;
+      padding: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>■□ SNS</h1>
+
+<!-- ユーザー名 -->
+<div>
+  ユーザー名（任意）<br>
+  <input id="username" placeholder="anonymous">
+</div>
+
+<br>
+
+<!-- 投稿タイプ -->
+<div>
+  投稿タイプ：
+  <label>
+    <input type="radio" name="type" value="ascii" checked>
+    アスキーアート
+  </label>
+  <label>
+    <input type="radio" name="type" value="binary">
+    2進数
+  </label>
+</div>
+
+<br>
+
+<!-- 入力エリア -->
+<textarea id="content" readonly></textarea>
+
+<div>
+  <button onclick="addChar('■')">■</button>
+  <button onclick="addChar('□')">□</button>
+  <button onclick="removeChar()">←</button>
+</div>
+
+<div>
+  <span id="count">0</span> / 900
+</div>
+
+<br>
+
+<button onclick="post()">投稿</button>
+
+<!-- タイムライン -->
+<div id="timeline"></div>
+
+<script>
+  const textarea = document.getElementById("content");
+  const count = document.getElementById("count");
+  const timeline = document.getElementById("timeline");
+
+  let savedPosts = [];
+
+  // ===== 起動時：保存データ読み込み =====
+  const data = localStorage.getItem("posts");
+  if (data) {
+    savedPosts = JSON.parse(data);
+    savedPosts.forEach(p => createPost(p));
+  }
+
+  // ===== 入力処理 =====
+  function addChar(char) {
+    if (textarea.value.length >= 900) return;
+    textarea.value += char;
+    count.textContent = textarea.value.length;
+  }
+
+  function removeChar() {
+    textarea.value = textarea.value.slice(0, -1);
+    count.textContent = textarea.value.length;
+  }
+
+  // ===== 投稿処理 =====
+  function post() {
+    const user = document.getElementById("username").value || "anonymous";
+    const type = document.querySelector("input[name='type']:checked").value;
+    const content = textarea.value;
+
+    if (content.length === 0) {
+      alert("内容が空です");
+      return;
+    }
+
+    const postData = {
+      user: user,
+      type: type,
+      content: content,
+      good: 0
+    };
+
+    savedPosts.unshift(postData);
+    localStorage.setItem("posts", JSON.stringify(savedPosts));
+
+    createPost(postData);
+
+    textarea.value = "";
+    count.textContent = 0;
+  }
+
+  // ===== 投稿表示 =====
+  function createPost(data) {
+    const postDiv = document.createElement("div");
+    postDiv.className = "post";
+
+    if (data.type === "binary") {
+      postDiv.classList.add("binary");
+    }
+
+    postDiv.innerHTML = `
+      <div>ユーザー：${data.user}</div>
+      <div>タイプ：${data.type === "ascii" ? "アスキーアート" : "2進数（■=1 □=0）"}</div>
+      <pre>${data.content}</pre>
+      <button class="good">GOOD <span>${data.good}</span></button>
+    `;
+
+    const goodBtn = postDiv.querySelector(".good");
+    const goodSpan = goodBtn.querySelector("span");
+
+    goodBtn.onclick = () => {
+      data.good++;
+      goodSpan.textContent = data.good;
+      localStorage.setItem("posts", JSON.stringify(savedPosts));
+    };
+
+    timeline.prepend(postDiv);
+  }
+</script>
+
+</body>
+</html>
